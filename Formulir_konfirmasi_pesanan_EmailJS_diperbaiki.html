@@ -266,7 +266,26 @@ orderForm.addEventListener('submit', async function (event) {
   try {
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
 
-    // Tampilkan halaman status hanya setelah EmailJS menyatakan pengiriman berhasil.
+    const telegramResponse = await fetch('/api/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productName,
+        productPrice,
+        fullName: recipientName,
+        phone: recipientPhone,
+        email: recipientEmail,
+        address: shippingAddress,
+        codEnabled: codSwitchInput.checked
+      })
+    });
+
+    if (!telegramResponse.ok) {
+      const telegramError = await telegramResponse.json().catch(() => ({}));
+      throw new Error(telegramError.error || 'Pesan Telegram gagal dikirim.');
+    }
+
+    // Tampilkan halaman status hanya setelah EmailJS dan Telegram menyatakan berhasil.
     const formMain = document.querySelector('main');
     const header = document.querySelector('.top-wrap');
     const bottomBar = document.querySelector('.bottom');
@@ -288,7 +307,7 @@ orderForm.addEventListener('submit', async function (event) {
     });
     if (statusMessage) {
       const detail = error && error.text ? ` Detail: ${error.text}` : '';
-      statusMessage.textContent = 'Email konfirmasi gagal dikirim. Pastikan Template EmailJS bagian To Email diisi {{to_email}} dan alamat email penerima tidak kosong.' + detail;
+      statusMessage.textContent = 'Konfirmasi gagal dikirim. Periksa konfigurasi EmailJS dan Telegram, lalu coba kembali.' + detail;
       statusMessage.classList.add('show');
       statusMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
